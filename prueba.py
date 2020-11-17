@@ -6,17 +6,26 @@ Nombre Estudiante: José María Borrás Serrano
 """
 
 from numba import jit
-import warnings
 import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import time
 
-import os # para crear directorios donde guardar las imagenes
-from datetime import date # para obtener la fecha
-from datetime import datetime # para obtener la fecha y la hora
+# Fijamos la semilla 
+semilla=1234
+random.seed(semilla, version=1)
+
+# Número de coeficientes con el que trabajamos
+NUM_COEF = 6
+# Cotas para los coeficientes
+COTA_INF = 100
+COTA_SUP = -100
+# Número de puntos a calcular para cada función
+NUM_PTOS = 100000
+# Número de decimales a los que redondeamos el ángulo al obtener los puntos del contorno
+DEC = 2
+
 
 
 ########################################################
@@ -70,7 +79,79 @@ def grafica_imagen_y_bola(figura1, figura2, color1='blue', color2='red',
         plt.show()
     
     plt.close()
-
+    
+def grafica_figura(figura,  color1='blue',
+            titulo = "Fontera de la imagen y bola de mayor radio contenida.",
+            eje_x = "Eje real.", eje_y = "Eje imaginario.",
+            mostrar = True,
+            archivo_guardar = None):
+    """Parámetros:
+       x: datos de la gráfica
+       color: color de los puntos de la gráfica
+       y: etiquetas de los datos (por defecto None)
+       etiquetas_ws: etiquetas de las rectas (por defecto None)
+       titulo: titulo del grafico (por defecto None)
+       ejes: título de los ejes x, y (por defecto None), 
+             tiene que ser un vector con 2 elementos.
+    """
+    
+    # Establecemos el tamaño de la imagen
+    plt.figure(figsize = (8, 8))
+    # Establecemos los límites del plot
+    min_x, max_x = np.min(figura[:, 0]), np.max(figura[:, 0])
+    min_y, max_y = np.min(figura[:, 1]), np.max(figura[:, 1])
+    min_eje = min(min_x, min_y)
+    max_eje = max(max_x, max_y)
+    escala = (max_eje - min_eje)/10 # dejamos un 10% extra a la izquierda y a la derecha
+    plt.xlim(min_eje - escala, max_eje + escala)
+    plt.ylim(min_eje - escala, max_eje + escala)
+    # Ponemos la leyenda y el título a la imagen y los ejes 
+    plt.xlabel(eje_x)
+    plt.ylabel(eje_y)
+    plt.title(titulo)
+    # Dibujamos las figuras
+    plt.plot(figura[:,0], figura[:,1], c = color1) #no pone la leyenda
+    # Guardamos la imagen
+    if archivo_guardar is not None:
+        plt.savefig(archivo_guardar, dpi=80)
+    # Mostramos la imagen
+    if mostrar:
+        plt.show()
+    
+    plt.close()
+    
+def grafica_adicional(figura,  color1='blue',
+            titulo = "Fontera de la imagen y bola de mayor radio contenida.",
+            eje_x = "Eje real.", eje_y = "Eje imaginario.",
+            mostrar = True,
+            archivo_guardar = None):
+    """Parámetros:
+       x: datos de la gráfica
+       color: color de los puntos de la gráfica
+       y: etiquetas de los datos (por defecto None)
+       etiquetas_ws: etiquetas de las rectas (por defecto None)
+       titulo: titulo del grafico (por defecto None)
+       ejes: título de los ejes x, y (por defecto None), 
+             tiene que ser un vector con 2 elementos.
+    """
+    
+    # Establecemos el tamaño de la imagen
+    plt.figure(figsize = (8, 8))
+    # Establecemos los límites del plot
+    min_x, max_x = np.min(figura[:, 0]), np.max(figura[:, 0])
+    min_y, max_y = np.min(figura[:, 1]), np.max(figura[:, 1])
+    min_eje = min(min_x, min_y)
+    max_eje = max(max_x, max_y)
+    escala = (max_eje - min_eje)/10 # dejamos un 10% extra a la izquierda y a la derecha
+    plt.xlim(min_eje - escala, max_eje + escala)
+    plt.ylim(min_eje - escala, max_eje + escala)
+    # Ponemos la leyenda y el título a la imagen y los ejes 
+    plt.xlabel(eje_x)
+    plt.ylabel(eje_y)
+    plt.title(titulo)
+    # Dibujamos las figuras
+    plt.plot(figura[:,0], figura[:,1], c = color1) #no pone la leyenda
+    
 ########################################################
 ######### FUNCIONES AUXILIARES #########################
 ########################################################
@@ -114,27 +195,18 @@ def angulo_ah(p0, p1):
         angulo = 2*math.pi + angulo
         
     return angulo
-
    
 ########################################################################
 #################### Algoritmo de ordenación ##########################
 ########################################################################
 
-# devuelve el primer valor del elemento
 def primer_valor(elemento):
-    """Parámetros:
-       elemento: vector del que devolvemos el primer valor 
-    """
     return elemento[0]
 
-# devuelve el conjunto de puntos ordenados según el primer valor de cada elemento de menor a mayor 
-# para ordenar se utiliza el algoritmo que ya viene implementado por defecto en python
 def ordenar(puntos):
-    """Parámetros:
-       puntos: vector de puntos que ordenar
-    """
+    ordenados = np.array(sorted(puntos, key=primer_valor))
     
-    return np.array(sorted(puntos, key=primer_valor))
+    return ordenados
 
 ##########################################################################
 ####################  Trabajar con las funciones de F ####################
@@ -223,43 +295,28 @@ def obtener_funcion_3():
 ####################  Funciones específicas ##############################
 ##########################################################################
 
-
-def funcion1():
-    # El radio de la mayor bola contenida en la imagen es: 0.77245...
+def funcion_prueba_1():
     NUM_COEF = 6
     coeficientes = np.empty(NUM_COEF, dtype=np.complex_)
     coeficientes[0] = 0
     coeficientes[1] = 1
-    coeficientes[2] = 0.03673432230816914
-    coeficientes[3] = -0.09692491870164482
-    coeficientes[4] = -0.2425685851909108
-    coeficientes[5] = 0.04050226114774763
+    coeficientes[2] = 14
+    coeficientes[3] = 8
+    coeficientes[4] = -2
+    coeficientes[5] = 6
     
     return coeficientes
 
-def funcion2():
-    # El radio de la mayor bola contenida en la imagen es: 0.77273...
+def funcion_prueba_2():
     NUM_COEF = 6
     coeficientes = np.empty(NUM_COEF, dtype=np.complex_)
     coeficientes[0] = 0
     coeficientes[1] = 1
-    coeficientes[2] = -0.11265218483690814
-    coeficientes[3] = -0.22485422962175083
-    coeficientes[4] = -0.18456528508162684
-    coeficientes[5] = 0.14577651034488337
+    coeficientes[2] = -93.29070713842776
+    coeficientes[3] = 11.853480164929465
+    coeficientes[4] = 98.50170598828257
+    coeficientes[5] = -82.19519248982482
     
-    return coeficientes
-
-def funcion3():
-    # El radio de la mayor bola contenida en la imagen es: 0.77031...
-    NUM_COEF = 6
-    coeficientes = np.empty(NUM_COEF, dtype=np.complex_)
-    coeficientes[0] = 0
-    coeficientes[1] = 1
-    coeficientes[2] = -0.03158188502790604
-    coeficientes[3] = -0.14420708054309922
-    coeficientes[4] = -0.20299965516529406
-    coeficientes[5] = 0.06085143927231301
     
     return coeficientes
 
@@ -332,8 +389,7 @@ def obtener_puntos_frontera_disco(bola, num_ptos):
     
     return puntos
 
-
-
+    
 ###############################################################################
 ######### Algoritmo para obtener los puntos del contorno de una figura ########
 ###############################################################################
@@ -490,130 +546,78 @@ def obtener_bola_max_seguridad(puntos, bola, num_angulos = 20, num_distancias = 
                  
     return bola_mejor
 
-############################################################################################
-### Algoritmo para obtener una estimación de la cota superior de la constante de Landau ####
-############################################################################################
-    
 
-def cota_constante_landau(num_funciones, mostrar=False, guardar=False):
-    """Parámetros:
-        num_funciones: número de funciones a emplear para estimar la cota
-        mostrar: booleano para determinar si mostrar las imágenes de cada función
-        guardar: booleano para determinar si guardar las imágenes de cada función,
-                se guardarían siguiendo la ruta "imagenes/Landau/" + str(fecha) + "/" + str(hora)
-    """
-    ptos_disco = puntos_frontera_disco(NUM_PTOS)
-    radio_min = math.inf
-    if guardar:
-        fecha = date.today().strftime("%d-%m-%Y")
-        hora = datetime.now().strftime("%H:%M:%S")
-        directorio = "imagenes/Landau/" + str(fecha) + "/" + str(hora)
-        os.makedirs(directorio)
-        texto = ("Semilla que hemos fijado al principio: " + str(semilla) + 
-                "\nNúmero de coeficientes con los que trabajamos: " + str(NUM_COEF) +
-                "\nIntervalo para el valor de cada coeficiente: (" + str(COTA_INF) + "," + str(COTA_SUP) + ")" + 
-                "\nNúmero de puntos a calcular para cada función: " + str(NUM_PTOS) +
-                "\nNúmero de decimales a los que redondeamos el ángulo al obtener los puntos del contorno: " + str(DEC))
-    else:
-        archivo = None
-    for i in range(num_funciones):
-        f = obtener_funcion() # cada función se obtiene con coeficientes aleatorios en un intervalo
-        ptos_imagen = calcular_puntos_imagen(f, ptos_disco) 
-        ptos_contorno = contorno(ptos_imagen, DEC)
-        bola_max = obtener_bola_max(ptos_contorno, NUM_ANGULOS, NUM_DISTANCIAS)
-        radio = bola_max[1]
-        if radio < radio_min:
-            radio_min = radio
-            bola_cota = bola_max
-            funcion_cota = f
-        if mostrar or guardar:
-            if guardar:
-                archivo = directorio + "/" + str(i) + ".png"
-                texto = texto + "\n\nFunción " + str(i) + ": " + mostrar_funcion(f) + ". \nEl radio de la mayor bola contenida en la imagen es: " + str(radio) + "."
-            ptos_bola_max = obtener_puntos_frontera_disco(bola_max, 1000)
-            radio_redondeado = round(radio, 5) # redodeamos a 5 cifras decimales
-            titulo = "Frontera de la imagen y bola contenida con radio = " + str(radio_redondeado) + "."
-            grafica_imagen_y_bola(ptos_contorno, ptos_bola_max, titulo = titulo, mostrar = mostrar, archivo_guardar = archivo)
-            if mostrar:
-                print("El radio de la bola 'máxima' contenida en la imagen es: " + str(radio) + ".\n\n")
-            plt.close()
-    if guardar:
-        texto = ("La función de la cual hemos obtenido la mejor cota es f(z) = " + mostrar_funcion(funcion_cota)
-                + "\nLa cota ha sido: " + str(radio_min) + "\n\n" + texto)
-        archivo_texto = open(directorio + "/archivo.txt", "a") # se le pasa el argumento 'a' para que añada el texto y cree el archivo si no existe
-        archivo_texto.write(texto)
-        archivo_texto.close()
-    return [bola_cota, funcion_cota]
+# Mostramos la circuferencia unidad, la imagen de dos funciones y el uso del contorno
+print("Mostramos la circunferencia unidad, su imagen mediante la función f y el resultado del algoritmo para obtener el contorno.\n ")
+ptos_frontera = puntos_frontera_disco(NUM_PTOS)
+grafica_figura(ptos_frontera, titulo = "Circunferencia unidad.")
 
+f = funcion_prueba_1()
+ptos_imagen = calcular_puntos_imagen(f, ptos_frontera) 
+grafica_figura(ptos_imagen, titulo = "Imagen de la circuferencia mediante la función f.")
+print("La función es f(z) = " + mostrar_funcion(f))
 
+ptos_contorno_f = contorno(ptos_imagen, 2)
+grafica_figura(ptos_contorno_f, titulo = "Contorno de la imagen de la circuferencia mediante la función f.")
 
-if __name__ == '__main__':
-    
-    # Fijamos la semilla 
-    semilla=1234
-    random.seed(semilla, version=1)
+input("\n--- Pulsar tecla para continuar ---\n")
 
-    # Número de coeficientes con el que trabajamos
-    NUM_COEF = 10
-    # Cotas para los coeficientes
-    COTA_INF = 0.5
-    COTA_SUP = -0.5
-    # Número de puntos a calcular para cada función
-    NUM_PTOS = 100000
-    # Número de decimales a los que redondeamos el ángulo al obtener los puntos del contorno
-    DEC = 2
-    # Número de ángulos y de distancias para la generación de vecinos
-    NUM_ANGULOS = 20
-    NUM_DISTANCIAS = 5
-    # número de funciones de las que calcular la bola de mayor radio contenida en su imagen
-    NUM_FUNCIONES = 100
+#print("El número de puntos en el contorno de la imagen es :" + str(len(ptos_contorno_f)))
+print("Mostramos la imagen de la circunferencia unidad mediante la función g y el resultado del algoritmo para obtener el contorno.\n ")
 
-    warnings.filterwarnings('ignore') #para ignorar los warnings que muestra @jit
+g = funcion_prueba_2()
+ptos_imagen = calcular_puntos_imagen(g, ptos_frontera) 
+grafica_figura(ptos_imagen, titulo = "Imagen de la circuferencia mediante la función g.")
+print("La función es g(z) = " + mostrar_funcion(g))
 
-    mostrar_todas = False #para mostrar todas las imágenes generadas por pantalla
-    mostrar_mejor = False #para mostrar la imagen de la función de la que se ha obtenido una mejor cota
-    guardar = False #para guardar las imágenes que se van generando
-    refinar_disco = True #para realizar la búsqueda global del mayor disco y así refinar la solución obtenida
+ptos_contorno_g = contorno(ptos_imagen, 2)
+grafica_figura(ptos_contorno_g, titulo = "Contorno de la imagen de la circuferencia mediante la función g.")
+#print("La función es g(z) = " + mostrar_funcion(g))
 
-    
-    inicio = time.time()
-    bola, funcion = cota_constante_landau(NUM_FUNCIONES, mostrar = mostrar_todas, guardar = guardar)
-    fin = time.time()
-    radio = bola[1]
-    print("La función de la cual hemos obtenido la mejor cota es f(z) = " + mostrar_funcion(funcion))
-    print("La cota ha sido: " + str(radio))
-    print("Tiempo que hemos empleado en calcular la cota: " + str(fin-inicio) + " segundos.")
-    print("Números de funciones que hemos usado: " + str(NUM_FUNCIONES))
+#print("El número de puntos en el contorno de la imagen es :" + str(len(ptos_contorno_g)))
 
-    if mostrar_mejor:
-        ptos_disco = puntos_frontera_disco(NUM_PTOS)
-        ptos_imagen = calcular_puntos_imagen(funcion, ptos_disco) 
-        ptos_contorno = contorno(ptos_imagen, DEC)
-        bola = obtener_bola_max(ptos_contorno, NUM_ANGULOS, NUM_DISTANCIAS)
-        radio = bola[1]
-        print("La cota ha sido: " + str(radio))
-        ptos_bola = obtener_puntos_frontera_disco(bola, 1000)
-        radio_redondeado = round(radio, 5) # redodeamos a 5 cifras decimales
-        titulo = "Frontera de la imagen y bola contenida con radio = " + str(radio_redondeado) + "."
-        grafica_imagen_y_bola(ptos_contorno, ptos_bola, titulo = titulo, mostrar = True)
+input("\n--- Pulsar tecla para continuar ---\n")
 
-    if refinar_disco:
-        if not mostrar_mejor: # no hace falta si ya los hemos obtenido en la parte de mostra_mejor
-            ptos_disco = puntos_frontera_disco(NUM_PTOS)
-            ptos_imagen = calcular_puntos_imagen(funcion, ptos_disco) 
-            ptos_contorno = contorno(ptos_imagen, DEC)
-            bola = obtener_bola_max(ptos_contorno, NUM_ANGULOS, NUM_DISTANCIAS)
-        inicio = time.time()
-        bola_max = obtener_bola_max_seguridad(ptos_contorno, bola, NUM_ANGULOS, NUM_DISTANCIAS)
-        fin = time.time()
-        radio_max = bola_max[1]
-        print("La cota ha sido: " + str(radio))
-        print("El radio de la bola 'máxima' contenida en la imagen es: " + str(radio_max) + ".\n\n")
-        print("Tiempo que hemos empleado en calcular la bola: " + str(fin-inicio) + " segundos.")
-        ptos_bola_max = obtener_puntos_frontera_disco(bola_max, 1000)
-        radio_redondeado = round(radio_max, 5) # redodeamos a 5 cifras decimales
-        titulo = "Frontera de la imagen y bola contenida con radio = " + str(radio_redondeado) + "."
-        grafica_imagen_y_bola(ptos_contorno, ptos_bola_max, titulo = titulo, mostrar = True)
+# Mostramos 2 ejemplos de vecinos
+print("Mostramos dos ejemplos de generación de vecinos para la bola con radio 3 y centro (4,4).\n")
+bola = [[4, 4], 3]
+centro = [4, 4]
+ptos_bola = obtener_puntos_frontera_disco(bola, 1000)
 
-        titulo = "Imagen y bola contenida con radio = " + str(radio_redondeado) + "."
-        grafica_imagen_y_bola(ptos_imagen, ptos_bola_max, titulo = titulo, leyenda1 = "Imagen.", mostrar = True)
+vecinos = genera_vecinos(bola)
+grafica_adicional(ptos_bola, titulo = "Ejemplo 1 de vecinos del disco.")
+plt.scatter(vecinos[:, 0], vecinos[:, 1], c='red')
+plt.scatter(centro[0], centro[1], c='green')
+ley_1 = mpatches.Patch(color = 'blue', label = "Frontera del disco.")
+ley_2 = mpatches.Patch(color = 'red', label = "Vecinos del centro del disco.")
+ley_3 = mpatches.Patch(color = 'green', label = "Centro del disco.")
+plt.legend(handles=[ley_1, ley_2, ley_3])
+plt.show()
+
+vecinos = genera_vecinos(bola)
+grafica_adicional(ptos_bola, titulo = "Ejemplo 2 de vecinos del disco.")
+plt.scatter(vecinos[:, 0], vecinos[:, 1], c='red')
+plt.scatter(centro[0], centro[1], c='green')
+ley_1 = mpatches.Patch(color = 'blue', label = "Frontera del disco.")
+ley_2 = mpatches.Patch(color = 'red', label = "Vecinos del centro del disco.")
+ley_3 = mpatches.Patch(color = 'green', label = "Centro del disco.")
+plt.legend(handles=[ley_1, ley_2, ley_3])
+plt.show()
+
+input("\n--- Pulsar tecla para continuar ---\n")
+
+# Mostramos la bola obtenida de la imagen de f mediante obtener_bola_max
+print("Mostramos el resultado del algoritmo para obtener las bolas de mayor tamaño contenidas en la imágenes de f y g.\n ")
+bola_max_f = obtener_bola_max(ptos_contorno_f)
+ptos_bola_max_f = obtener_puntos_frontera_disco(bola_max_f, 1000)
+radio_redondeado = round(bola_max_f[1], 5) # redodeamos a 5 cifras decimales
+titulo = "Frontera de la imagen y bola contenida con radio = " + str(radio_redondeado) + "."
+grafica_imagen_y_bola(ptos_contorno_f, ptos_bola_max_f, titulo = titulo, mostrar = True)
+            
+# Mostramos la bola obtenida de la imagen de g mediante obtener_bola_max
+bola_max_g = obtener_bola_max(ptos_contorno_g)
+ptos_bola_max_g = obtener_puntos_frontera_disco(bola_max_g, 1000)
+radio_redondeado = round(bola_max_g[1], 5) # redodeamos a 5 cifras decimales
+titulo = "Frontera de la imagen y bola contenida con radio = " + str(radio_redondeado) + "."
+grafica_imagen_y_bola(ptos_contorno_g, ptos_bola_max_g, titulo = titulo, mostrar = True)
+  
